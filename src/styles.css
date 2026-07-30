@@ -1,0 +1,137 @@
+/* Palette lifted from terrain.scouts.com.au's own stylesheets (July 2026):
+   #00348d primary blue · #071e57 navy · #253642 ink · #748494 muted slate
+   #1070ca action blue · #e5e9ec / #b7c2cc greys · #ef5350 red · #ffd180 amber.
+   Colours only — no Scouts Australia logos or marks; this tool is unofficial. */
+:root {
+  --blue: #00348d; --navy: #071e57; --action: #1070ca; --amber: #ffd180;
+  --ink: #253642; --muted: #748494; --slate: #405261;
+  --line: #e5e9ec; --line-strong: #b7c2cc;
+  --bad: #ef5350; --warn: #8a5300; --ok: #00897b;
+}
+* { box-sizing: border-box; }
+body {
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink); background: #f4f6f8; margin: 0;
+}
+
+/* ---- masthead ---- */
+.masthead {
+  background: linear-gradient(120deg, var(--navy) 0%, var(--blue) 75%);
+  border-bottom: 3px solid var(--amber);
+  color: #fff;
+}
+.masthead-inner {
+  max-width: 1100px; margin: 0 auto; padding: 18px 24px;
+  display: flex; align-items: center; gap: 16px;
+}
+.mark { width: 46px; height: 46px; flex: 0 0 auto; }
+.masthead-title h1 { font-size: 21px; margin: 0; letter-spacing: .01em; }
+.masthead-title p { margin: 2px 0 0; font-size: 13px; color: #c7d3e8; }
+.unofficial {
+  margin-left: auto; flex: 0 0 auto;
+  border: 1px solid rgba(255, 209, 128, .7); color: var(--amber);
+  border-radius: 99px; padding: 3px 12px;
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+}
+
+.wrap { max-width: 1100px; margin: 0 auto; padding: 22px 24px 8px; }
+h2 { font-size: 15px; margin: 24px 0 8px; color: var(--navy); }
+.sub { color: var(--muted); margin: 0 0 20px; }
+
+fieldset {
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 16px 18px; margin: 0 0 16px; background: #fff;
+  box-shadow: 0 1px 3px rgba(7, 30, 87, .06);
+}
+fieldset[disabled] { opacity: .5; }
+legend { font-weight: 600; padding: 0 6px; color: var(--navy); }
+label { display: block; font-size: 12px; color: var(--slate); margin-bottom: 2px; }
+input[type=text], input[type=password], select {
+  width: 100%; padding: 6px 8px; border: 1px solid var(--line-strong);
+  border-radius: 4px; font: inherit; background: #fff; color: var(--ink);
+}
+input:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 2px solid var(--action); outline-offset: 1px;
+}
+.row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; align-items: flex-end; }
+.row > div { flex: 1 1 180px; }
+.row > div.narrow { flex: 0 0 110px; }
+.row > div.auto { flex: 0 0 auto; }
+button {
+  font: inherit; padding: 7px 16px; border-radius: 4px;
+  border: 1px solid var(--blue); background: var(--blue); color: #fff; cursor: pointer;
+}
+button:hover:not(:disabled) { background: var(--action); border-color: var(--action); }
+button.secondary { background: #fff; color: var(--blue); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.banner {
+  border-left: 4px solid var(--amber); background: #fff8e8;
+  border-radius: 0 6px 6px 0; padding: 10px 14px; margin-bottom: 16px;
+}
+.note, .status { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.status.ok { color: var(--ok); } .status.warn { color: var(--warn); } .status.err { color: var(--bad); }
+
+/* ---- grid ---- */
+.scroll { overflow: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; }
+table { border-collapse: collapse; background: #fff; font-size: 13px; }
+th, td { border: 1px solid var(--line); padding: 5px 7px; text-align: left; vertical-align: top; }
+tr:first-child th { background: #eef2f7; }
+th.stmt { vertical-align: bottom; text-align: center; padding: 4px 3px 6px; }
+th.stmt .label {
+  display: block; margin: 0 auto 5px;
+  writing-mode: vertical-rl; transform: rotate(180deg); max-height: 230px;
+  font-weight: 500; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--slate);
+}
+th.stmt .info {
+  display: block; margin: 0 auto; padding: 0;
+  width: 17px; height: 17px; line-height: 15px; border-radius: 50%;
+  border: 1px solid var(--action); background: #fff; color: var(--action);
+  font: italic 600 11px/15px Georgia, serif; cursor: pointer;
+}
+th.stmt .info:hover { background: var(--action); color: #fff; }
+td.name { white-space: nowrap; font-weight: 500; position: sticky; left: 0; background: #fff; }
+td.name .detail { font-weight: 400; font-size: 11px; color: var(--muted); }
+td.cell { text-align: center; }
+td.rowtick { text-align: center; }
+td.rowtick .submitrow {
+  display: inline-flex; align-items: center; gap: 4px; margin: 0;
+  font-size: 11px; color: var(--action); white-space: nowrap; cursor: pointer;
+}
+button.tickrow { padding: 2px 9px; font-size: 11px; background: #fff; color: var(--blue); }
+button.tickrow:hover { background: var(--blue); color: #fff; }
+.done { color: var(--ok); font-weight: 700; }
+.locked { color: var(--muted); }
+
+pre {
+  background: var(--navy); color: #d6e2ee; padding: 12px; border-radius: 6px;
+  overflow: auto; max-height: 460px; font-size: 12px;
+}
+.log div { border-bottom: 1px solid var(--line); padding: 3px 0; font-family: ui-monospace, monospace; font-size: 12px; }
+.log div.ok { color: var(--ok); } .log div.err { color: var(--bad); }
+.pill {
+  display: inline-block; background: #eef3f7; border: 1px solid var(--line);
+  border-radius: 99px; padding: 1px 9px; font-size: 12px;
+}
+
+/* ---- footer ---- */
+.footer {
+  max-width: 1100px; margin: 28px auto 0; padding: 14px 24px 26px;
+  border-top: 1px solid var(--line); font-size: 12px; color: var(--muted);
+}
+.footer a { color: var(--action); }
+
+/* ---- statement info dialog ---- */
+.info-dialog {
+  max-width: 34rem; border: 1px solid var(--line); border-radius: 8px;
+  padding: 20px 24px; color: var(--ink); box-shadow: 0 10px 40px rgba(7, 30, 87, .25);
+}
+.info-dialog::backdrop { background: rgba(7, 30, 87, .45); }
+.info-dialog .info-group {
+  margin: 0 0 4px; font-size: 11px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--muted);
+}
+.info-dialog .info-title { margin: 0 0 12px; font-size: 16px; line-height: 1.35; }
+.info-dialog .info-body { margin: 0 0 18px; }
+.info-dialog .info-body.muted { color: var(--muted); font-style: italic; }
+.info-dialog form { text-align: right; margin: 0; }
