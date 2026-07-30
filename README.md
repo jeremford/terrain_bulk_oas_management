@@ -1,6 +1,9 @@
-# terrain_approvals
+# terrain_bulk_oas_management
 
 Bulk Outdoor Adventure Skills entry for [Scouts Terrain](https://terrain.scouts.com.au).
+
+**Use it here: <https://jeremford.github.io/terrain_bulk_oas_management/>** — no install,
+runs entirely in your browser.
 
 Recording an OAS stage for a pack through the Terrain interface means, for every
 member: switching into assist mode, waiting out a slow SPA, ticking each statement
@@ -17,10 +20,10 @@ top, one pass, one save.
 
 ## Running it
 
-**Hosted:** pushes to the default branch deploy the single-file build to GitHub Pages
-(enable Pages → "GitHub Actions" in the repo settings). The hosted page is byte-for-byte
-the same artefact as `npm run build` produces — everything still runs in your browser;
-GitHub only serves the static file.
+**Hosted:** <https://jeremford.github.io/terrain_bulk_oas_management/>. Pushes to the
+default branch deploy the single-file build there via GitHub Pages. The hosted page is
+byte-for-byte the same artefact as `npm run build` produces — everything still runs in
+your browser; GitHub only serves the static file.
 
 **Locally:** no build step, no dependencies.
 
