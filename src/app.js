@@ -6,6 +6,9 @@ import { fetchTemplate, parseStatements } from './core/template.js';
 import { unitsFromProfiles, selfFromProfiles, buildMemberRows, isComplete } from './core/model.js';
 import { buildPlan, describePlan, submitOnlyEntries } from './core/plan.js';
 import { renderGrid, readSelections, readSubmitRequests } from './ui/grid.js';
+import { buildReport, normaliseRecords, recordFilter, templateKey } from './core/report.js';
+import { reportToPdf } from './core/report-pdf.js';
+import { renderReport, reportAsHtml, canvasMeasurer } from './ui/report.js';
 
 const $ = id => document.getElementById(id);
 const RATE_LIMIT_MS = 400;   // unknown server limits - stay gentle
@@ -71,6 +74,7 @@ restorePrefs();
 
 async function afterSignIn() {
   $('contextFields').disabled = false;
+  $('reportFields').disabled = false;
   setStatus($('authStatus'), `Signed in. Token valid for about ${Math.round((session.expiresAt - Date.now()) / 60000)} minutes.`, 'ok');
 
   const unitSelect = $('unit');
@@ -187,6 +191,164 @@ $('load').addEventListener('click', async () => {
       rosterError ? 'warn' : 'ok');
   } catch (err) {
     setStatus($('loadStatus'), err.message, 'err');
+  }
+});
+
+// ---- progress report ------------------------------------------------------
+
+const REPORT_CONCURRENCY = 3;   // reads only, but the limits are still unknown
+
+/** Runs fn over items with a small concurrency cap, reporting progress. */
+async function mapLimited(items, fn, onProgress) {
+  const results = new Array(items.length);
+  let next = 0, done = 0;
+  await Promise.all(Array.from({ length: Math.min(REPORT_CONCURRENCY, items.length) }, async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]);
+      onProgress(++done, items.length);
+    }
+  }));
+  return results;
+}
+
+let reportArticle = null;
+let reportData = null;     // { report, unitName, stages } behind the download buttons
+
+/** A row of labelled checkboxes with all/none shortcuts. */
+function renderChecks(host, values, checked) {
+  host.replaceChildren();
+  for (const value of values) {
+    const label = document.createElement('label');
+    const box = document.createElement('input');
+    box.type = 'checkbox';
+    box.value = String(value);
+    box.checked = checked.includes(value);
+    label.appendChild(box);
+    label.appendChild(document.createTextNode(` ${value}`));
+    host.appendChild(label);
+  }
+  for (const [text, on] of [['all', true], ['none', false]]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = text;
+    button.addEventListener('click', () => {
+      for (const box of host.querySelectorAll('input')) box.checked = on;
+    });
+    host.appendChild(button);
+  }
+}
+
+const readChecks = host => [...host.querySelectorAll('input:checked')].map(box => box.value);
+
+// Streams come from the picker above so the two lists cannot drift apart.
+// OAS runs to stage 9 for the older sections; a Cub unit lives in 1 to 3.
+const REPORT_STREAMS = [...$('stream').options].map(o => o.value);
+const REPORT_STAGES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+renderChecks($('reportStreams'), REPORT_STREAMS, REPORT_STREAMS);
+renderChecks($('reportStages'), REPORT_STAGES, [1, 2, 3]);
+
+$('buildReport').addEventListener('click', async () => {
+  const status = $('reportStatus');
+  $('reportSection').hidden = true;
+  $('buildReport').disabled = true;
+
+  try {
+    const { unitId } = context();
+    if (!unitId || unitId === '__manual') throw new Error('Choose a unit first.');
+    const unitName = $('unit').selectedOptions[0]?.textContent.split(' — ')[0] ?? unitId;
+    const includeLeaders = !$('reportExcludeLeaders').checked;
+    const include = {
+      streams: readChecks($('reportStreams')),
+      stages: readChecks($('reportStages')).map(Number),
+    };
+    if (!include.streams.length || !include.stages.length) throw new Error('Tick at least one stream and one stage.');
+
+    setStatus(status, 'Loading roster…');
+    const rosterResponse = await client.getUnitMembers(unitId);
+    const roster = rosterResponse?.results ?? rosterResponse ?? [];
+
+    // Only fetch records for the members who will appear.
+    const memberIds = buildReport({ roster, records: new Map(), templates: new Map(), includeLeaders })
+      .map(m => m.memberId);
+
+    const records = new Map();
+    await mapLimited(memberIds, async memberId => {
+      records.set(memberId, await client.getMemberAchievements(memberId));
+    }, (done, total) => setStatus(status, `Loading member records… ${done} of ${total}`));
+
+    // Each record pins its own template version; fetch each distinct one once,
+    // and only for the streams and stages that will be shown.
+    const keys = new Map();
+    const wanted = recordFilter(include);
+    for (const raw of records.values()) {
+      for (const rec of normaliseRecords(raw).filter(wanted)) {
+        keys.set(templateKey(rec.stream, rec.stage, rec.version), rec);
+      }
+    }
+    setStatus(status, `Loading ${keys.size} templates…`);
+    const templates = new Map();
+    await Promise.all([...keys].map(async ([key, rec]) => {
+      try {
+        templates.set(key, parseStatements(await fetchTemplate(rec.stream, rec.stage, rec.version)));
+      } catch (err) {
+        console.warn(`template ${key}: ${err.message}`);
+      }
+    }));
+
+    const report = buildReport({ roster, records, templates, includeLeaders, include });
+    reportData = { report, unitName, stages: include.stages };
+    reportArticle = renderReport($('report'), report, { unitName, generatedAt: new Date(), stages: include.stages });
+    $('reportSection').hidden = false;
+    $('reportSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    const missingTemplates = keys.size - templates.size;
+    setStatus(status,
+      `${report.length} members · ${keys.size - missingTemplates} templates` +
+      (missingTemplates ? ` · ${missingTemplates} template(s) could not be loaded` : ''),
+      missingTemplates ? 'warn' : 'ok');
+  } catch (err) {
+    setStatus(status, err.message, 'err');
+  } finally {
+    $('buildReport').disabled = false;
+  }
+});
+
+$('printReport').addEventListener('click', () => window.print());
+
+function downloadFile(content, type, extension) {
+  const blob = new Blob([content], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const slug = reportData.unitName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  a.download = `oas-progress-${slug}-${new Date().toISOString().slice(0, 10)}.${extension}`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+$('downloadReport').addEventListener('click', () => {
+  if (!reportArticle) return;
+  downloadFile(reportAsHtml(reportArticle, { unitName: reportData.unitName }), 'text/html', 'html');
+});
+
+// Generated here rather than via the print dialog: the browser's PDF of this
+// page came out at tens of megabytes on macOS. Ours is text-only Helvetica.
+$('downloadPdf').addEventListener('click', async () => {
+  if (!reportData) return;
+  const button = $('downloadPdf');
+  button.disabled = true;
+  try {
+    const bytes = await reportToPdf(reportData.report, {
+      unitName: reportData.unitName,
+      generatedAt: new Date(),
+      stages: reportData.stages,
+      measure: canvasMeasurer(),
+    });
+    downloadFile(bytes, 'application/pdf', 'pdf');
+  } catch (err) {
+    setStatus($('reportStatus'), `PDF failed: ${err.message}`, 'err');
+  } finally {
+    button.disabled = false;
   }
 });
 

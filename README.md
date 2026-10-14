@@ -60,6 +60,19 @@ Writes `dist/terrain-approvals.html` — one file, no server, opens straight fro
 Optionally tick *also submit for review* to move each record to pending review in
 the same pass.
 
+### Progress report
+
+Below the load fields is **Build report**. It reads every member's OAS records for the
+chosen unit, matches each against the template version it was created with, and
+renders one document: a section per member listing what is awarded, each stream in
+progress ordered by stream and stage, and the exact statements still unverified.
+Stages that are complete but held up by an unfinished lower stage are called out at
+the top of the member's section, so "one statement short of Bushcraft 2 and 3" is
+visible at a glance. Tick the streams and stages to include, then download it as a
+PDF or a single HTML file. The PDF is generated in the browser by the tool's own
+text-only writer, so it is a few hundred kilobytes rather than the tens of megabytes
+the browser's print dialog can produce. It is read-only.
+
 ### Assist mode
 
 Terrain's interface makes you "manage achievement pathways" for a member before

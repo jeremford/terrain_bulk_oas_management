@@ -18,8 +18,10 @@ Not endorsed by Scouts Australia.
 
 ```
 npm start      # python3 -m http.server 8080
-npm test       # node:test, 24 tests
+npm test       # node:test, 40 tests
 npm run build  # dist/terrain-approvals.html — single self-contained file
+npm run export # oas-statements.json — flat statement list from the public templates
+               # export:md additionally renders it as oas-statements.md
 ```
 
 ES modules will not load over `file://`, hence the dev server. `npm run build` exists
@@ -95,8 +97,12 @@ src/api/terrain.js      REST client. One method per endpoint, no business logic
 src/core/template.js    template fetch + parseStatements()
 src/core/model.js       roster join achievements -> grid rows
 src/core/plan.js        selections -> requests. PURE, no I/O, unit tested
+src/core/report.js      roster + per-member records + templates -> progress report. PURE, unit tested
+src/core/pdf.js         minimal PDF writer (Helvetica, no embedding, deflate). PURE, unit tested
+src/core/report-pdf.js  progress report -> PDF layout. PURE, unit tested
 src/ui/grid.js          grid render + selection read
 src/ui/info.js          the info popup (full label + template dialog_text)
+src/ui/report.js        progress report render, print and standalone-HTML download
 src/app.js              wiring only — DOM events to the modules above
 scripts/build.mjs       dependency-free single-file bundler
 ```
@@ -119,7 +125,7 @@ server keeps working.
 ## Testing
 
 `node --test test/*.test.mjs`. Only the pure modules are unit tested — `core/plan.js`,
-`core/template.js` and `core/model.js` — because they hold the logic that fails silently
+`core/template.js`, `core/model.js`, `core/report.js`, `core/pdf.js` and `core/report-pdf.js` — because they hold the logic that fails silently
 and corrupts data.
 `auth`, `api` and `ui` are DOM- or network-bound and are not unit tested; verify those
 manually against a real record.

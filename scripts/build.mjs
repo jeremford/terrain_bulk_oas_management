@@ -19,8 +19,12 @@ const MODULES = [
   'src/core/template.js',
   'src/core/model.js',
   'src/core/plan.js',
+  'src/core/report.js',
+  'src/core/pdf.js',
+  'src/core/report-pdf.js',
   'src/ui/info.js',
   'src/ui/grid.js',
+  'src/ui/report.js',
   'src/app.js',
 ];
 

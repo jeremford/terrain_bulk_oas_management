@@ -78,6 +78,37 @@
   <p id="loadStatus" class="status"></p>
 </fieldset>
 
+<fieldset id="reportFields" disabled>
+  <legend>Progress report</legend>
+  <p class="note" style="margin:0 0 10px">
+    Every OAS stream and stage for every member of the unit chosen above: what is awarded, what is in progress,
+    and exactly which statements are still missing. Read-only — nothing is written.
+  </p>
+  <div class="row">
+    <div><label>Streams</label><div class="checks" id="reportStreams"></div></div>
+  </div>
+  <div class="row">
+    <div><label>Stages</label><div class="checks" id="reportStages"></div></div>
+  </div>
+  <div class="row">
+    <label style="display:inline" title="Leaders' own OAS records are usually not what you are reviewing">
+      <input type="checkbox" id="reportExcludeLeaders" checked> exclude leaders</label>
+    <div class="auto"><button id="buildReport">Build report</button></div>
+  </div>
+  <p id="reportStatus" class="status"></p>
+</fieldset>
+
+<section id="reportSection" hidden>
+  <h2>OAS progress report</h2>
+  <div class="report-actions">
+    <button id="downloadPdf">Download PDF</button>
+    <button id="downloadReport" class="secondary">Download HTML</button>
+    <button id="printReport" class="secondary">Print</button>
+    <span class="note" style="margin:0">The file contains member names. Treat it as you would any unit record.</span>
+  </div>
+  <div id="report"></div>
+</section>
+
 <section id="gridSection" hidden>
   <h2>3 · Grid</h2>
   <p class="sub" id="gridNote"></p>
