@@ -1,5 +1,7 @@
 dist/
 node_modules/
+oas-statements.json
+oas-statements.md
 .DS_Store
 *.har
 *.log

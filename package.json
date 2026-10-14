@@ -7,7 +7,9 @@
   "scripts": {
     "start": "python3 -m http.server 8080",
     "build": "node scripts/build.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "export": "node scripts/export-statements.mjs",
+    "export:md": "node scripts/export-statements.mjs && node scripts/statements-to-md.mjs"
   },
   "engines": { "node": ">=20" }
 }
