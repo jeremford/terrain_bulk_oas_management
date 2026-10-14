@@ -33,8 +33,21 @@ const MODULES = [
   'src/app.js',
 ];
 
+// Imports are dropped because every module ends up in one scope. An aliased
+// import (`titleCase as title`) becomes a real `const`, so that if the alias
+// collides with a top-level name in another module the parse check below
+// fails instead of the alias silently binding to the wrong thing — which is
+// how the report once called a PDF helper and died on first use.
+const importedNames = [];
 const stripModuleSyntax = source => source
-  .replace(/^\s*import\s+[\s\S]*?from\s+['"][^'"]+['"];?\s*$/gm, '')
+  .replace(/^\s*import\s+\{([^}]*)\}\s*from\s+['"][^'"]+['"];?\s*$/gm, (_, list) => list
+    .split(',').map(s => s.trim()).filter(Boolean)
+    .map(binding => {
+      const [name, alias] = binding.split(/\s+as\s+/);
+      importedNames.push(name);
+      return alias ? `const ${alias} = ${name};` : '';
+    })
+    .filter(Boolean).join('\n'))
   .replace(/^\s*export\s+(?=(const|let|var|function|class|async))/gm, '')
   .replace(/^\s*export\s*\{[^}]*\};?\s*$/gm, '');
 
@@ -57,6 +70,15 @@ try {
   new Script(bundle, { filename: 'dist/terrain-approvals.html' });
 } catch (err) {
   console.error(`Built bundle does not parse: ${err.message}`);
+  process.exit(1);
+}
+
+// Every imported name must be declared at top level by some module in the
+// list, or the import came from a module that is missing from MODULES.
+const declared = new Set([...bundle.matchAll(/^(?:async\s+)?(?:const|let|var|function|class)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]));
+const undeclared = [...new Set(importedNames)].filter(name => !declared.has(name));
+if (undeclared.length) {
+  console.error(`Imported but never declared in the bundle (module missing from MODULES?): ${undeclared.join(', ')}`);
   process.exit(1);
 }
 

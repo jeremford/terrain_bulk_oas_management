@@ -11,7 +11,7 @@ import { titleCase } from './report.js';
 
 const LEFT_OFF = 'Members with a tick, or whose record is pending review or awarded, are left off.';
 
-function title(ctx, heading, sub) {
+function drawTitle(ctx, heading, sub) {
   ctx.doc.text(ctx.page, MARGIN, ctx.y + 14, heading, { size: 16, bold: true, color: C.navy });
   ctx.doc.text(ctx.page, MARGIN, ctx.y + 28, sub, { size: 8.5, color: C.muted });
   ctx.y += 36;
@@ -39,7 +39,7 @@ export async function outstandingToPdf(data, { unitName, stream, stage, generate
   const ctx = { doc, page: null, y: 0, footer: `OAS outstanding — ${subject} · ${unitName} · ${generated}` };
 
   newPage(ctx, false);
-  title(ctx, `${subject} — outstanding by statement`, `${unitName} · ${generated}`);
+  drawTitle(ctx, `${subject} — outstanding by statement`, `${unitName} · ${generated}`);
   const summary = data.groups.length
     ? `${data.outstanding} of ${data.total} members have something outstanding. ${LEFT_OFF}`
     : `Nothing outstanding: all ${data.total} members have every statement ticked or their record is already submitted.`;
@@ -58,7 +58,7 @@ export async function outstandingReportToPdf(data, { unitName, generatedAt, meas
   const ctx = { doc, page: null, y: 0, footer: `OAS outstanding — ${unitName} · ${generated}` };
 
   newPage(ctx, false);
-  title(ctx, 'Outstanding by statement', `${unitName} · ${generated} · ${data.total} members`);
+  drawTitle(ctx, 'Outstanding by statement', `${unitName} · ${generated} · ${data.total} members`);
   const summary = data.stages.length
     ? `${data.stages.length} stage${data.stages.length === 1 ? '' : 's'} with something outstanding, in stream order. ${LEFT_OFF} Members with no record for a stage are listed as not started rather than against every statement.`
     : 'Nothing outstanding in the selected streams and stages.';
