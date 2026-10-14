@@ -73,6 +73,15 @@ PDF or a single HTML file. The PDF is generated in the browser by the tool's own
 text-only writer, so it is a few hundred kilobytes rather than the tens of megabytes
 the browser's print dialog can produce. It is read-only.
 
+### Outstanding by statement
+
+Once a grid is loaded, **Download outstanding PDF** turns it inside out: for the chosen
+stream and stage, each statement someone still needs, followed by the names of the
+members without a tick for it. Statements everyone has are left off, as are members
+whose record is pending review or awarded. It reflects what Terrain has recorded, not
+boxes ticked in the grid but not yet applied. One page per stream and stage in most
+cases, meant to be taken along to a night of activities.
+
 ### Assist mode
 
 Terrain's interface makes you "manage achievement pathways" for a member before

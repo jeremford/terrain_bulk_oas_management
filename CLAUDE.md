@@ -18,7 +18,7 @@ Not endorsed by Scouts Australia.
 
 ```
 npm start      # python3 -m http.server 8080
-npm test       # node:test, 40 tests
+npm test       # node:test, 45 tests
 npm run build  # dist/terrain-approvals.html — single self-contained file
 npm run export # oas-statements.json — flat statement list from the public templates
                # export:md additionally renders it as oas-statements.md
@@ -100,6 +100,9 @@ src/core/plan.js        selections -> requests. PURE, no I/O, unit tested
 src/core/report.js      roster + per-member records + templates -> progress report. PURE, unit tested
 src/core/pdf.js         minimal PDF writer (Helvetica, no embedding, deflate). PURE, unit tested
 src/core/report-pdf.js  progress report -> PDF layout. PURE, unit tested
+src/core/pdf-layout.js  page flow, wrap and keep-together items shared by the PDF layouts
+src/core/outstanding.js grid rows -> per-statement list of who still needs it. PURE, unit tested
+src/core/outstanding-pdf.js  that list -> PDF. PURE, unit tested
 src/ui/dom.js           the el() helper shared by the ui modules (one copy, see build gotcha)
 src/ui/grid.js          grid render + selection read
 src/ui/info.js          the info popup (full label + template dialog_text)
@@ -128,7 +131,8 @@ fails on that, and `el()` lives in `src/ui/dom.js` for this reason.
 ## Testing
 
 `node --test test/*.test.mjs`. Only the pure modules are unit tested — `core/plan.js`,
-`core/template.js`, `core/model.js`, `core/report.js`, `core/pdf.js` and `core/report-pdf.js` — because they hold the logic that fails silently
+`core/template.js`, `core/model.js`, `core/report.js`, `core/pdf.js`, `core/report-pdf.js`,
+`core/outstanding.js` and `core/outstanding-pdf.js` — because they hold the logic that fails silently
 and corrupts data.
 `auth`, `api` and `ui` are DOM- or network-bound and are not unit tested; verify those
 manually against a real record.

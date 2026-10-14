@@ -6,6 +6,8 @@ import { fetchTemplate, parseStatements } from './core/template.js';
 import { unitsFromProfiles, selfFromProfiles, buildMemberRows, isComplete } from './core/model.js';
 import { buildPlan, describePlan, submitOnlyEntries } from './core/plan.js';
 import { renderGrid, readSelections, readSubmitRequests } from './ui/grid.js';
+import { buildOutstanding } from './core/outstanding.js';
+import { outstandingToPdf } from './core/outstanding-pdf.js';
 import { buildReport, normaliseRecords, recordFilter, templateKey } from './core/report.js';
 import { reportToPdf } from './core/report-pdf.js';
 import { renderReport, reportAsHtml, canvasMeasurer } from './ui/report.js';
@@ -256,7 +258,7 @@ $('buildReport').addEventListener('click', async () => {
   try {
     const { unitId } = context();
     if (!unitId || unitId === '__manual') throw new Error('Choose a unit first.');
-    const unitName = $('unit').selectedOptions[0]?.textContent.split(' — ')[0] ?? unitId;
+    const unitName = unitLabel();
     const includeLeaders = !$('reportExcludeLeaders').checked;
     const include = {
       streams: readChecks($('reportStreams')),
@@ -316,15 +318,37 @@ $('buildReport').addEventListener('click', async () => {
 
 $('printReport').addEventListener('click', () => window.print());
 
-function downloadFile(content, type, extension) {
+const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const unitLabel = () => $('unit').selectedOptions[0]?.textContent.split(' — ')[0] ?? $('unit').value;
+
+function downloadFile(content, type, extension, prefix = `oas-progress-${slugify(reportData.unitName)}`) {
   const blob = new Blob([content], { type });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  const slug = reportData.unitName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  a.download = `oas-progress-${slug}-${new Date().toISOString().slice(0, 10)}.${extension}`;
+  a.download = `${prefix}-${new Date().toISOString().slice(0, 10)}.${extension}`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
+
+// The grid inverted: per statement, who still needs it. Reflects what Terrain
+// has recorded, not boxes ticked in the grid but not yet applied.
+$('downloadOutstanding').addEventListener('click', async () => {
+  const button = $('downloadOutstanding');
+  button.disabled = true;
+  try {
+    const { stream, stage } = context();
+    const unitName = unitLabel();
+    const bytes = await outstandingToPdf(buildOutstanding(members, statements), {
+      unitName, stream, stage, generatedAt: new Date(), measure: canvasMeasurer(),
+    });
+    downloadFile(bytes, 'application/pdf', 'pdf', `oas-outstanding-${stream}-${stage}-${slugify(unitName)}`);
+    setStatus($('outstandingStatus'), '');
+  } catch (err) {
+    setStatus($('outstandingStatus'), `PDF failed: ${err.message}`, 'err');
+  } finally {
+    button.disabled = false;
+  }
+});
 
 $('downloadReport').addEventListener('click', () => {
   if (!reportArticle) return;
