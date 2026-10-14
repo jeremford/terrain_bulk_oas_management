@@ -1,19 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { inflateSync } from 'node:zlib';
 import { PdfWriter, CHECK } from '../src/core/pdf.js';
 import { reportToPdf } from '../src/core/report-pdf.js';
 import { buildReport, templateKey } from '../src/core/report.js';
 
-const latin = bytes => new TextDecoder('latin1').decode(bytes);
+// Buffer's latin1 is byte-faithful ISO-8859-1. TextDecoder('latin1') is
+// windows-1252 by spec, and whether Node remaps 0x80–0x9F varies by patch
+// release, which corrupted the deflate streams on CI.
+const latin = bytes => Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString('latin1');
 
 /** Inflates every FlateDecode stream so text operators can be inspected. */
 async function contentText(bytes) {
   const text = latin(bytes);
   const out = [];
   for (const m of text.matchAll(/stream\n([\s\S]*?)\nendstream/g)) {
-    const raw = Uint8Array.from(m[1], ch => ch.charCodeAt(0));
-    const stream = new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate'));
-    out.push(latin(new Uint8Array(await new Response(stream).arrayBuffer())));
+    out.push(inflateSync(Buffer.from(m[1], 'latin1')).toString('latin1'));
   }
   return out.join('\n');
 }
