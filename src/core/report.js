@@ -70,9 +70,11 @@ export function stageProgress(record, statements) {
 
   if (!statements) return { ...base, state: 'unknown', total: 0, done: 0, missing: [], logbookOnly: false };
 
+  // index is the statement's position in the template, so a list merged across
+  // members can be put back into template order without refetching it.
   const missing = statements
-    .filter(s => record.answers[s.id] !== true)
-    .map(({ id, label, group, verifiable }) => ({ id, label, group, verifiable: verifiable !== false }));
+    .map(({ id, label, group, verifiable }, index) => ({ id, label, group, verifiable: verifiable !== false, index }))
+    .filter(s => record.answers[s.id] !== true);
   const total = statements.length;
   const done = total - missing.length;
   // The only non-verifiable statement in the syllabus is "my logbook is up to

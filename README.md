@@ -82,6 +82,11 @@ whose record is pending review or awarded. It reflects what Terrain has recorded
 boxes ticked in the grid but not yet applied. One page per stream and stage in most
 cases, meant to be taken along to a night of activities.
 
+The progress report has the same button, covering every stream and stage ticked in its
+filters at once, in stream order with each stream starting on a new page. There, a member with
+no record for a stage is listed once as "not started" rather than against every
+statement of it.
+
 ### Assist mode
 
 Terrain's interface makes you "manage achievement pathways" for a member before

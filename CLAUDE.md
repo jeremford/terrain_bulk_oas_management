@@ -18,7 +18,7 @@ Not endorsed by Scouts Australia.
 
 ```
 npm start      # python3 -m http.server 8080
-npm test       # node:test, 45 tests
+npm test       # node:test, 48 tests
 npm run build  # dist/terrain-approvals.html — single self-contained file
 npm run export # oas-statements.json — flat statement list from the public templates
                # export:md additionally renders it as oas-statements.md
@@ -101,7 +101,7 @@ src/core/report.js      roster + per-member records + templates -> progress repo
 src/core/pdf.js         minimal PDF writer (Helvetica, no embedding, deflate). PURE, unit tested
 src/core/report-pdf.js  progress report -> PDF layout. PURE, unit tested
 src/core/pdf-layout.js  page flow, wrap and keep-together items shared by the PDF layouts
-src/core/outstanding.js grid rows -> per-statement list of who still needs it. PURE, unit tested
+src/core/outstanding.js grid rows, or the report -> per-statement list of who still needs it. PURE, unit tested
 src/core/outstanding-pdf.js  that list -> PDF. PURE, unit tested
 src/ui/dom.js           the el() helper shared by the ui modules (one copy, see build gotcha)
 src/ui/grid.js          grid render + selection read

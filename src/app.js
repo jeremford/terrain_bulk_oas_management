@@ -6,8 +6,8 @@ import { fetchTemplate, parseStatements } from './core/template.js';
 import { unitsFromProfiles, selfFromProfiles, buildMemberRows, isComplete } from './core/model.js';
 import { buildPlan, describePlan, submitOnlyEntries } from './core/plan.js';
 import { renderGrid, readSelections, readSubmitRequests } from './ui/grid.js';
-import { buildOutstanding } from './core/outstanding.js';
-import { outstandingToPdf } from './core/outstanding-pdf.js';
+import { buildOutstanding, buildOutstandingReport } from './core/outstanding.js';
+import { outstandingToPdf, outstandingReportToPdf } from './core/outstanding-pdf.js';
 import { buildReport, normaliseRecords, recordFilter, templateKey } from './core/report.js';
 import { reportToPdf } from './core/report-pdf.js';
 import { renderReport, reportAsHtml, canvasMeasurer } from './ui/report.js';
@@ -369,6 +369,23 @@ $('downloadPdf').addEventListener('click', async () => {
       measure: canvasMeasurer(),
     });
     downloadFile(bytes, 'application/pdf', 'pdf');
+  } catch (err) {
+    setStatus($('reportStatus'), `PDF failed: ${err.message}`, 'err');
+  } finally {
+    button.disabled = false;
+  }
+});
+
+// The same report turned inside out: per stage, per statement, who still needs it.
+$('downloadOutstandingReport').addEventListener('click', async () => {
+  if (!reportData) return;
+  const button = $('downloadOutstandingReport');
+  button.disabled = true;
+  try {
+    const bytes = await outstandingReportToPdf(buildOutstandingReport(reportData.report), {
+      unitName: reportData.unitName, generatedAt: new Date(), measure: canvasMeasurer(),
+    });
+    downloadFile(bytes, 'application/pdf', 'pdf', `oas-outstanding-${slugify(reportData.unitName)}`);
   } catch (err) {
     setStatus($('reportStatus'), `PDF failed: ${err.message}`, 'err');
   } finally {
