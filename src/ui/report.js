@@ -5,13 +5,7 @@
  */
 
 import { describeStage, describeCallout, describeStageNote, summaryColumns, summaryCell, titleCase as title, SUMMARY_LEGEND } from '../core/report.js';
-
-const el = (tag, className, text) => {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-};
+import { el } from './dom.js';
 
 function renderStage(stage) {
   const box = el('div', `stage ${stage.state}`);

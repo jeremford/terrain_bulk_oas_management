@@ -2,12 +2,7 @@
 
 import { isLocked } from '../core/model.js';
 import { showStatementInfo } from './info.js';
-
-const el = (tag, className) => {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  return node;
-};
+import { el } from './dom.js';
 
 function headerCell(statement) {
   const th = el('th', 'stmt');

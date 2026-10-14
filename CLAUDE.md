@@ -100,6 +100,7 @@ src/core/plan.js        selections -> requests. PURE, no I/O, unit tested
 src/core/report.js      roster + per-member records + templates -> progress report. PURE, unit tested
 src/core/pdf.js         minimal PDF writer (Helvetica, no embedding, deflate). PURE, unit tested
 src/core/report-pdf.js  progress report -> PDF layout. PURE, unit tested
+src/ui/dom.js           the el() helper shared by the ui modules (one copy, see build gotcha)
 src/ui/grid.js          grid render + selection read
 src/ui/info.js          the info popup (full label + template dialog_text)
 src/ui/report.js        progress report render, print and standalone-HTML download
@@ -110,7 +111,9 @@ scripts/build.mjs       dependency-free single-file bundler
 **Gotcha:** `scripts/build.mjs` has an explicit `MODULES` array in dependency order and
 strips import/export syntax. It does not resolve imports. **Any new module must be added
 to that array**, leaves first, or it silently vanishes from the built file while the dev
-server keeps working.
+server keeps working. The modules also share one scope once concatenated, so a top-level
+name declared in two modules breaks only the built file; the build parses the bundle and
+fails on that, and `el()` lives in `src/ui/dom.js` for this reason.
 
 ## Conventions
 

@@ -9,6 +9,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Script } from 'node:vm';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -22,6 +23,7 @@ const MODULES = [
   'src/core/report.js',
   'src/core/pdf.js',
   'src/core/report-pdf.js',
+  'src/ui/dom.js',
   'src/ui/info.js',
   'src/ui/grid.js',
   'src/ui/report.js',
@@ -44,6 +46,16 @@ const [html, css, ...sources] = await Promise.all([
 const bundle = MODULES
   .map((path, i) => `/* ---- ${path} ---- */\n${stripModuleSyntax(sources[i]).trim()}`)
   .join('\n\n');
+
+// Concatenation puts every module in one scope, so a top-level name declared
+// in two modules only fails in the built file. Parse it here rather than let a
+// leader find out in the browser console.
+try {
+  new Script(bundle, { filename: 'dist/terrain-approvals.html' });
+} catch (err) {
+  console.error(`Built bundle does not parse: ${err.message}`);
+  process.exit(1);
+}
 
 const output = html
   .replace('<link rel="stylesheet" href="src/styles.css">', `<style>\n${css}\n</style>`)
