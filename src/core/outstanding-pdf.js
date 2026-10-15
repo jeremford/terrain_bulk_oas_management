@@ -24,6 +24,10 @@ function groupItems(ctx, groups) {
     if (group.title) items.push(textItem(ctx, group.title.toUpperCase(), { size: 8, bold: true, color: C.muted, before: 8, after: 2, keep: true }));
     group.statements.forEach((s, i) => {
       items.push(textItem(ctx, s.label, { size: 10, bold: true, color: C.ink, before: i ? 6 : 2, after: 1, keep: true }));
+      if (s.alsoIn?.length) {
+        items.push(textItem(ctx, `Also in ${s.alsoIn.map(w => `${titleCase(w.stream)} ${w.stage}`).join(', ')}`,
+          { size: 8, italic: true, color: C.muted, indent: 10, after: 1, keep: true }));
+      }
       items.push(s.names.length
         ? runsItem(ctx, `${s.names.length} to go`, s.names.join(' · '), { leadSize: 8.5, noteSize: 9.5, noteColor: C.slate, indent: 10, after: 2 })
         : textItem(ctx, 'only those not started', { size: 8.5, italic: true, color: C.muted, indent: 10, after: 2 }));

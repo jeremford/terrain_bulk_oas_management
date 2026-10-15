@@ -14,6 +14,9 @@ import { STREAM_ORDER, templateKey } from './report.js';
 
 const byName = (a, b) => a.localeCompare(b);
 
+/** Wording key: case, spacing and punctuation vary between streams for the same statement. */
+export const sameWording = label => label.toLowerCase().replace(/[^a-z0-9 ]+/g, '').replace(/\s+/g, ' ').trim();
+
 /** Chunks consecutive statements by group title, keeping only those someone needs (or all, if keepEmpty). */
 function groupStatements(entries, keepEmpty = false) {
   const groups = [];
@@ -25,7 +28,7 @@ function groupStatements(entries, keepEmpty = false) {
       group = { title, statements: [] };
       groups.push(group);
     }
-    group.statements.push({ id: entry.id, label: entry.label, names: [...entry.names].sort(byName) });
+    group.statements.push({ id: entry.id, label: entry.label, names: [...entry.names].sort(byName), alsoIn: entry.alsoIn ?? [] });
   }
   return groups;
 }
@@ -78,7 +81,7 @@ export function buildOutstandingReport(report, { templates = new Map(), streams 
         ?? [...templates].find(([k]) => k.startsWith(`${stream}/${stage}/`))?.[1];
       if (!template) continue;
       const entry = stageOf(stream, stage);
-      template.forEach(({ id, label, group }, index) => entry.statements.set(id, { id, label, group, index, names: [] }));
+      template.forEach(({ id, label, group, verifiable }, index) => entry.statements.set(id, { id, label, group, verifiable: verifiable !== false, index, names: [] }));
     }
   }
 
@@ -90,7 +93,7 @@ export function buildOutstandingReport(report, { templates = new Map(), streams 
       for (const m of cell.missing) {
         if (!stage.statements.has(m.id)) {
           // Not in the current template: append after it, in the member's order.
-          stage.statements.set(m.id, { id: m.id, label: m.label, group: m.group, index: 1e6 + (m.index ?? 1e6), names: [] });
+          stage.statements.set(m.id, { id: m.id, label: m.label, group: m.group, verifiable: m.verifiable !== false, index: 1e6 + (m.index ?? 1e6), names: [] });
         }
         stage.statements.get(m.id).names.push(member.name);
       }
@@ -98,12 +101,34 @@ export function buildOutstandingReport(report, { templates = new Map(), streams 
   }
 
   const streamRank = s => { const i = STREAM_ORDER.indexOf(s); return i === -1 ? STREAM_ORDER.length : i; };
+  const byOrder = (a, b) => streamRank(a.stream) - streamRank(b.stream) || a.stage - b.stage;
   const everyone = report.map(m => m.name);
+  const ordered = [...byStage.values()].sort(byOrder);
+
+  // The same statement recurs across streams under different ids ("I can
+  // explain the buddy system" is in six), so a leader at camp can sign it off
+  // once and tick it everywhere. Match on wording; ids differ per stream.
+  // The logbook checkbox is on every stage and is not a skill, so it is skipped.
+  const wordings = new Map();
+  for (const stage of ordered) {
+    for (const s of stage.statements.values()) {
+      if (!s.verifiable) continue;
+      const key = sameWording(s.label);
+      if (!wordings.has(key)) wordings.set(key, []);
+      wordings.get(key).push({ stream: stage.stream, stage: stage.stage });
+    }
+  }
+  for (const stage of ordered) {
+    for (const s of stage.statements.values()) {
+      s.alsoIn = s.verifiable
+        ? (wordings.get(sameWording(s.label)) ?? []).filter(w => w.stream !== stage.stream || w.stage !== stage.stage)
+        : [];
+    }
+  }
 
   return {
     total: report.length,
-    stages: [...byStage.values()]
-      .sort((a, b) => streamRank(a.stream) - streamRank(b.stream) || a.stage - b.stage)
+    stages: ordered
       .map(stage => {
         const notStarted = everyone.filter(n => !stage.started.has(n)).sort(byName);
         const entries = [...stage.statements.values()].sort((a, b) => a.index - b.index);

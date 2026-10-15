@@ -191,3 +191,25 @@ test('report-wide PDF marks statements nobody in progress is missing as needed o
   assert.match(ops, /\(only those not started\) Tj/);
   assert.match(ops, /\(Aiden \\267 Mia \\267 Nat \\267 Zoe\) Tj/);
 });
+
+test('a statement worded the same in other selected stages is annotated with them, logbook excepted', async () => {
+  const sun = 'I can protect myself when exposed to the sun while outdoors.';
+  const t = (id, label, extra = {}) => ({ id, label, group: 'Plan', ...extra });
+  const templates = new Map([
+    [templateKey('bushcraft', 2, undefined), [t('a1', sun), t('a2', 'My logbook is up to date.', { verifiable: false })]],
+    [templateKey('camping', 2, undefined), [t('c1', '  i can protect myself, when exposed to the SUN while outdoors'), t('c2', 'My logbook is up to date.', { verifiable: false })]],
+    [templateKey('boating', 1, undefined), [t('b1', sun), t('b2', 'I can row')]],
+  ]);
+  const report = [{ name: 'Nat', cells: [] }];
+  const out = buildOutstandingReport(report, { templates, streams: ['bushcraft', 'camping', 'boating'], stages: [1, 2] });
+  const find = (stream, id) => out.stages.find(s => s.stream === stream).groups[0].statements.find(s => s.id === id);
+  assert.deepEqual(find('bushcraft', 'a1').alsoIn, [{ stream: 'camping', stage: 2 }, { stream: 'boating', stage: 1 }]);   // stream order
+  assert.deepEqual(find('camping', 'c1').alsoIn, [{ stream: 'bushcraft', stage: 2 }, { stream: 'boating', stage: 1 }]);
+  assert.deepEqual(find('bushcraft', 'a2').alsoIn, []);
+  assert.deepEqual(find('boating', 'b2').alsoIn, []);
+
+  const ops = content(await outstandingReportToPdf(out, { unitName: 'U', generatedAt: new Date(), measure }));
+  assert.match(ops, /\(Also in Camping 2, Boating 1\) Tj/);
+  assert.doesNotMatch(ops, /Also in Bushcraft 2, Camping 2, Boating 1/);
+  assert.equal((ops.match(/\(Also in /g) || []).length, 3);
+});
