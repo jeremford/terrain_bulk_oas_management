@@ -18,7 +18,7 @@ Not endorsed by Scouts Australia.
 
 ```
 npm start      # python3 -m http.server 8080
-npm test       # node:test, 48 tests
+npm test       # node:test, 52 tests
 npm run build  # dist/terrain-approvals.html — single self-contained file
 npm run export # oas-statements.json — flat statement list from the public templates
                # export:md additionally renders it as oas-statements.md

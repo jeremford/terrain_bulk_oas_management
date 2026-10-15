@@ -10,16 +10,16 @@
  */
 
 import { isLocked } from './model.js';
-import { STREAM_ORDER } from './report.js';
+import { STREAM_ORDER, templateKey } from './report.js';
 
 const byName = (a, b) => a.localeCompare(b);
 
-/** Chunks consecutive statements by group title, keeping only those someone needs. */
-function groupStatements(entries) {
+/** Chunks consecutive statements by group title, keeping only those someone needs (or all, if keepEmpty). */
+function groupStatements(entries, keepEmpty = false) {
   const groups = [];
   let group = null;
   for (const entry of entries) {
-    if (!entry.names.length) continue;
+    if (!entry.names.length && !keepEmpty) continue;
     const title = entry.group ?? '';
     if (!group || group.title !== title) {
       group = { title, statements: [] };
@@ -47,33 +47,52 @@ export function buildOutstanding(members, statements) {
 }
 
 /**
- * From the progress report: every stream and stage it covers. A member with no
- * record for a stage is "not started" rather than outstanding on every
- * statement, which keeps a stage nobody has begun from drowning the list.
- * Stages where nobody has anything outstanding are dropped.
+ * From the progress report: every selected stream and stage, with every
+ * statement of it. It is printed to take to a camp, so a stage nobody has
+ * started still lists its statements in full. A member with no record for a
+ * stage is listed once as "not started" rather than against every statement;
+ * they need all of them. A stage is dropped only when nobody needs anything,
+ * or when it has no template to list and nobody is missing anything.
  *
- * Statement order follows the template: each missing item carries its index in
- * the member's template, and the lowest index seen wins. Members can pin
- * different versions of a stage, so ties and new statements fall back to
- * first appearance.
+ * Statement order follows the stage's current template. Statements only an
+ * older version has (a member pinned to it) are appended in that version's
+ * order, using the index stageProgress() attaches to each missing item.
  *
  * @param {Array<{ name, cells: Array<{ stream, stage, state, missing }> }>} report  from buildReport()
+ * @param {{ templates?: Map<string, statements[]>, streams?: string[], stages?: number[] }} options
+ *   templates keyed by templateKey(); streams and stages as selected in the report filters
  * @returns {{ total, stages: Array<{ stream, stage, outstanding, notStarted: string[], groups }> }}
  */
-export function buildOutstandingReport(report) {
-  const stages = new Map();
+export function buildOutstandingReport(report, { templates = new Map(), streams = [], stages = [] } = {}) {
+  const byStage = new Map();
+  const stageOf = (stream, stage) => {
+    const key = `${stream}/${stage}`;
+    if (!byStage.has(key)) byStage.set(key, { stream, stage: Number(stage), started: new Set(), statements: new Map() });
+    return byStage.get(key);
+  };
+
+  // Seed every selected stage with its template so unstarted statements show.
+  for (const stream of streams) {
+    for (const stage of stages) {
+      const template = templates.get(templateKey(stream, stage, undefined))
+        ?? [...templates].find(([k]) => k.startsWith(`${stream}/${stage}/`))?.[1];
+      if (!template) continue;
+      const entry = stageOf(stream, stage);
+      template.forEach(({ id, label, group }, index) => entry.statements.set(id, { id, label, group, index, names: [] }));
+    }
+  }
+
   for (const member of report) {
     for (const cell of member.cells) {
-      const key = `${cell.stream}/${cell.stage}`;
-      if (!stages.has(key)) stages.set(key, { stream: cell.stream, stage: cell.stage, started: new Set(), statements: new Map() });
-      const stage = stages.get(key);
+      const stage = stageOf(cell.stream, cell.stage);
       stage.started.add(member.name);
       if (cell.state !== 'in_progress') continue;
       for (const m of cell.missing) {
-        if (!stage.statements.has(m.id)) stage.statements.set(m.id, { id: m.id, label: m.label, group: m.group, index: m.index ?? Infinity, names: [] });
-        const entry = stage.statements.get(m.id);
-        entry.index = Math.min(entry.index, m.index ?? Infinity);
-        entry.names.push(member.name);
+        if (!stage.statements.has(m.id)) {
+          // Not in the current template: append after it, in the member's order.
+          stage.statements.set(m.id, { id: m.id, label: m.label, group: m.group, index: 1e6 + (m.index ?? 1e6), names: [] });
+        }
+        stage.statements.get(m.id).names.push(member.name);
       }
     }
   }
@@ -83,13 +102,14 @@ export function buildOutstandingReport(report) {
 
   return {
     total: report.length,
-    stages: [...stages.values()]
+    stages: [...byStage.values()]
       .sort((a, b) => streamRank(a.stream) - streamRank(b.stream) || a.stage - b.stage)
       .map(stage => {
-        const entries = [...stage.statements.values()].sort((a, b) => a.index - b.index);   // stable: ties keep first appearance
-        const groups = groupStatements(entries);
-        const outstanding = new Set(entries.flatMap(e => e.names)).size;
         const notStarted = everyone.filter(n => !stage.started.has(n)).sort(byName);
+        const entries = [...stage.statements.values()].sort((a, b) => a.index - b.index);
+        // With someone not started, every statement is still needed by them.
+        const groups = groupStatements(entries, notStarted.length > 0);
+        const outstanding = new Set(entries.flatMap(e => e.names)).size;
         return { stream: stage.stream, stage: stage.stage, outstanding, notStarted, groups };
       })
       .filter(stage => stage.groups.length),

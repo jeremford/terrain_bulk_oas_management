@@ -24,8 +24,9 @@ function groupItems(ctx, groups) {
     if (group.title) items.push(textItem(ctx, group.title.toUpperCase(), { size: 8, bold: true, color: C.muted, before: 8, after: 2, keep: true }));
     group.statements.forEach((s, i) => {
       items.push(textItem(ctx, s.label, { size: 10, bold: true, color: C.ink, before: i ? 6 : 2, after: 1, keep: true }));
-      items.push(runsItem(ctx, `${s.names.length} to go`, s.names.join(' · '),
-        { leadSize: 8.5, noteSize: 9.5, noteColor: C.slate, indent: 10, after: 2 }));
+      items.push(s.names.length
+        ? runsItem(ctx, `${s.names.length} to go`, s.names.join(' · '), { leadSize: 8.5, noteSize: 9.5, noteColor: C.slate, indent: 10, after: 2 })
+        : textItem(ctx, 'only those not started', { size: 8.5, italic: true, color: C.muted, indent: 10, after: 2 }));
     });
   }
   return items;
@@ -60,7 +61,7 @@ export async function outstandingReportToPdf(data, { unitName, generatedAt, meas
   newPage(ctx, false);
   drawTitle(ctx, 'Outstanding by statement', `${unitName} · ${generated} · ${data.total} members`);
   const summary = data.stages.length
-    ? `${data.stages.length} stage${data.stages.length === 1 ? '' : 's'} with something outstanding, in stream order. ${LEFT_OFF} Members with no record for a stage are listed as not started rather than against every statement.`
+    ? `${data.stages.length} stage${data.stages.length === 1 ? '' : 's'} in stream order, each listing every statement. ${LEFT_OFF} Members with no record for a stage are listed once as not started: they need all of it.`
     : 'Nothing outstanding in the selected streams and stages.';
   placeBlock(ctx, [textItem(ctx, summary, { size: 9, color: C.muted, after: 4 })]);
 
@@ -71,7 +72,7 @@ export async function outstandingReportToPdf(data, { unitName, generatedAt, meas
     if (stream && stage.stream !== stream) newPage(ctx, false);
     stream = stage.stream;
     const items = [runsItem(ctx, `${titleCase(stage.stream)} Stage ${stage.stage}`,
-      `${stage.outstanding} member${stage.outstanding === 1 ? '' : 's'} with something outstanding`,
+      `${stage.outstanding} in progress with something outstanding · ${stage.notStarted.length} not started`,
       { leadSize: 13, noteSize: 9, noteColor: C.muted, before: stage === data.stages[0] || stage.stream !== prevStream(data, stage) ? 2 : 14, after: 2, keep: true })];
     const heading = items[0];
     const draw = heading.draw;

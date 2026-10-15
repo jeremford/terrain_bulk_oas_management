@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { inflateSync } from 'node:zlib';
 import { buildOutstanding, buildOutstandingReport } from '../src/core/outstanding.js';
+import { templateKey } from '../src/core/report.js';
 import { outstandingToPdf, outstandingReportToPdf } from '../src/core/outstanding-pdf.js';
 
 const statements = [
@@ -131,7 +132,7 @@ test('report-wide outstanding PDF has a heading per stage, the names, and the no
     { unitName: 'Test Unit', generatedAt: new Date('2026-10-15T19:00:00'), measure });
   const ops = content(bytes);
   assert.match(ops, /\(Outstanding by statement\) Tj/);
-  assert.match(ops, /\(2 stages with something outstanding/);
+  assert.match(ops, /\(2 stages in stream order, each listing every statement/);
   assert.match(ops, /\(Bushcraft Stage 2\) Tj/);
   assert.match(ops, /\(Camping Stage 1\) Tj/);
   assert.match(ops, /\(Aiden \\267 Zoe\) Tj/);
@@ -143,4 +144,50 @@ test('report-wide outstanding PDF has a heading per stage, the names, and the no
   assert.equal(pages.length, 2);
   assert.match(pages[1], /^(?:(?!Bushcraft)[\s\S])*\(Camping Stage 1\) Tj/);
   assert.match(content(await outstandingReportToPdf({ total: 3, stages: [] }, { unitName: 'U', generatedAt: new Date(), measure })), /Nothing outstanding in the selected/);
+});
+
+test('a selected stage nobody has started lists every template statement, needed only by the not-started', () => {
+  const boating = ['b1', 'b2', 'b3'].map((id, i) => ({ id, label: `I can ${id}`, group: i < 2 ? 'Plan' : 'Do' }));
+  const templates = new Map([[templateKey('boating', 1, undefined), boating]]);
+  const out = buildOutstandingReport(reportFixture, { templates, streams: ['bushcraft', 'boating'], stages: [1, 2] });
+  const b1 = out.stages.find(s => s.stream === 'boating');
+  assert.ok(b1, 'boating is listed');
+  assert.equal(b1.outstanding, 0);
+  assert.deepEqual(b1.notStarted, ['Aiden', 'Mia', 'Nat', 'Zoe']);
+  assert.deepEqual(b1.groups.map(g => [g.title, g.statements.map(s => [s.id, s.names])]), [['Plan', [['b1', []], ['b2', []]]], ['Do', [['b3', []]]]]);
+  // stream order still holds: camping precedes boating in STREAM_ORDER
+  assert.deepEqual(out.stages.map(s => s.stream), ['bushcraft', 'camping', 'boating']);
+});
+
+test('with a template, a stage lists statements nobody in progress is missing, as the not-started still need them', () => {
+  const template = ['p1', 'p2', 'p9'].map(id => ({ id, label: `I can ${id}`, group: 'Plan' }));
+  const templates = new Map([[templateKey('bushcraft', 2, 1), template]]);   // only a pinned version is known: it still seeds
+  const out = buildOutstandingReport(reportFixture, { templates, streams: ['bushcraft'], stages: [2] });
+  const bc2 = out.stages.find(s => s.stage === 2);
+  assert.deepEqual(bc2.groups.map(g => [g.title, g.statements.map(s => [s.id, s.names])]), [
+    ['Plan', [['p1', ['Zoe']], ['p2', ['Aiden', 'Zoe']], ['p9', []]]],
+    ['Do', [['d1', ['Zoe']]]],                                                  // d1 is only in Zoe's older template: appended
+  ]);
+});
+
+test('a stage everyone has settled is dropped even when its template is known', () => {
+  const template = [{ id: 'p1', label: 'p1', group: 'Plan' }];
+  const templates = new Map([[templateKey('bushcraft', 1, undefined), template]]);
+  const settled = [
+    { name: 'A', cells: [cell('bushcraft', 1, 'awarded')] },
+    { name: 'B', cells: [cell('bushcraft', 1, 'submitted')] },
+  ];
+  const out = buildOutstandingReport(settled, { templates, streams: ['bushcraft'], stages: [1] });
+  assert.deepEqual(out.stages, []);
+});
+
+test('report-wide PDF marks statements nobody in progress is missing as needed only by the not-started', async () => {
+  const boating = [{ id: 'b1', label: 'I can row a boat', group: 'Do' }];
+  const data = buildOutstandingReport(reportFixture, { templates: new Map([[templateKey('boating', 1, undefined), boating]]), streams: ['boating'], stages: [1] });
+  const ops = content(await outstandingReportToPdf(data, { unitName: 'U', generatedAt: new Date(), measure }));
+  assert.match(ops, /\(Boating Stage 1\) Tj/);
+  assert.match(ops, /\(0 in progress with something outstanding \\267 4 not started\) Tj/);
+  assert.match(ops, /\(I can row a boat\) Tj/);
+  assert.match(ops, /\(only those not started\) Tj/);
+  assert.match(ops, /\(Aiden \\267 Mia \\267 Nat \\267 Zoe\) Tj/);
 });

@@ -288,23 +288,34 @@ $('buildReport').addEventListener('click', async () => {
         keys.set(templateKey(rec.stream, rec.stage, rec.version), rec);
       }
     }
-    setStatus(status, `Loading ${keys.size} templates…`);
+    // The outstanding-by-statement PDF lists every statement of every selected
+    // stage, so stages no record pins need their current template too. Those
+    // are best effort: a stream may simply have no template at that stage.
+    const pinned = new Set([...keys.values()].map(rec => `${rec.stream}/${rec.stage}`));
+    const unpinned = include.streams.flatMap(stream => include.stages
+      .filter(stage => !pinned.has(`${stream}/${stage}`))
+      .map(stage => ({ stream, stage, version: undefined })));
+    setStatus(status, `Loading ${keys.size + unpinned.length} templates…`);
     const templates = new Map();
-    await Promise.all([...keys].map(async ([key, rec]) => {
+    const load = async (key, rec, warn) => {
       try {
         templates.set(key, parseStatements(await fetchTemplate(rec.stream, rec.stage, rec.version)));
       } catch (err) {
-        console.warn(`template ${key}: ${err.message}`);
+        if (warn) console.warn(`template ${key}: ${err.message}`);
       }
-    }));
+    };
+    await Promise.all([
+      ...[...keys].map(([key, rec]) => load(key, rec, true)),
+      ...unpinned.map(rec => load(templateKey(rec.stream, rec.stage, undefined), rec, false)),
+    ]);
 
     const report = buildReport({ roster, records, templates, includeLeaders, include });
-    reportData = { report, unitName, stages: include.stages };
+    reportData = { report, unitName, stages: include.stages, streams: include.streams, templates };
     reportArticle = renderReport($('report'), report, { unitName, generatedAt: new Date(), stages: include.stages });
     $('reportSection').hidden = false;
     $('reportSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    const missingTemplates = keys.size - templates.size;
+    const missingTemplates = [...keys.keys()].filter(key => !templates.has(key)).length;
     setStatus(status,
       `${report.length} members · ${keys.size - missingTemplates} templates` +
       (missingTemplates ? ` · ${missingTemplates} template(s) could not be loaded` : ''),
@@ -382,7 +393,8 @@ $('downloadOutstandingReport').addEventListener('click', async () => {
   const button = $('downloadOutstandingReport');
   button.disabled = true;
   try {
-    const bytes = await outstandingReportToPdf(buildOutstandingReport(reportData.report), {
+    const data = buildOutstandingReport(reportData.report, { templates: reportData.templates, streams: reportData.streams, stages: reportData.stages });
+    const bytes = await outstandingReportToPdf(data, {
       unitName: reportData.unitName, generatedAt: new Date(), measure: canvasMeasurer(),
     });
     downloadFile(bytes, 'application/pdf', 'pdf', `oas-outstanding-${slugify(reportData.unitName)}`);

@@ -83,9 +83,10 @@ boxes ticked in the grid but not yet applied. One page per stream and stage in m
 cases, meant to be taken along to a night of activities.
 
 The progress report has the same button, covering every stream and stage ticked in its
-filters at once, in stream order with each stream starting on a new page. There, a member with
-no record for a stage is listed once as "not started" rather than against every
-statement of it.
+filters at once, in stream order with each stream starting on a new page. It is meant to
+be printed and taken to camp, so it lists every statement of each stage, including ones
+nobody has started. A member with no record for a stage is listed once as "not started"
+rather than against every statement of it: they need all of them.
 
 ### Assist mode
 
