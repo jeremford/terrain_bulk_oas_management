@@ -114,13 +114,21 @@ export function calloutItem(ctx, text) {
   };
 }
 
-export function placeBlock(ctx, items) {
+/**
+ * Draws items in sequence. With `whole` (the default) a block that would fit
+ * on one page is moved to a fresh page rather than split, which suits a
+ * member's section; a long list that is meant to flow passes `whole: false`.
+ * A `keep` item stays with what follows it, through a run of keep items, so
+ * a heading never ends a page on its own.
+ */
+export function placeBlock(ctx, items, { whole = true } = {}) {
   const total = items.reduce((s, i) => s + i.h, 0);
   const full = limit(ctx) - MARGIN;
-  if (ctx.y + total > limit(ctx) && total <= full) newPage(ctx, false);
+  if (whole && ctx.y + total > limit(ctx) && total <= full) newPage(ctx, false);
 
   items.forEach((item, i) => {
-    const withNext = item.h + (item.keep ? (items[i + 1]?.h ?? 0) : 0);
+    let withNext = item.h;
+    for (let j = i; items[j]?.keep && items[j + 1]; j++) withNext += items[j + 1].h;
     if (ctx.y + withNext > limit(ctx) && ctx.y > MARGIN) newPage(ctx, false);
     item.draw(ctx, ctx.y);
     ctx.y += item.h;

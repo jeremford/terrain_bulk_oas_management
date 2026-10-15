@@ -213,3 +213,18 @@ test('a statement worded the same in other selected stages is annotated with the
   assert.doesNotMatch(ops, /Also in Bushcraft 2, Camping 2, Boating 1/);
   assert.equal((ops.match(/\(Also in /g) || []).length, 3);
 });
+
+test('a long first stage flows from page 1 instead of leaving it blank, and a heading never ends a page', async () => {
+  const lots = Array.from({ length: 40 }, (_, i) => ({ id: `q${i}`, label: `I can do thing number ${i} well`, group: i % 4 ? 'Do' : `Group ${i}` }));
+  const templates = new Map([[templateKey('bushcraft', 1, undefined), lots]]);
+  const data = buildOutstandingReport([{ name: 'Nat', cells: [] }], { templates, streams: ['bushcraft'], stages: [1] });
+  const ops = content(await outstandingReportToPdf(data, { unitName: 'U', generatedAt: new Date(), measure }));
+  const pages = ops.split(/(?=BT 0\.455 0\.518 0\.580 rg \/F1 7\.5 Tf 1 0 0 1 40\.00 14\.00 Tm)/).filter(Boolean);
+  assert.ok(pages.length >= 2, `${pages.length} pages`);
+  assert.match(pages[0], /\(I can do thing number 0 well\) Tj/);
+  for (const page of pages) {
+    const texts = [...page.matchAll(/\((.*?)\) Tj/g)].map(m => m[1]);
+    const last = texts[texts.length - 1];
+    assert.doesNotMatch(last, /^(GROUP \d+|DO|Bushcraft Stage 1|I can do thing)/, `page ends on a heading: ${last}`);
+  }
+});

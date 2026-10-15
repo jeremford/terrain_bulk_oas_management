@@ -86,7 +86,7 @@ export async function outstandingReportToPdf(data, { unitName, generatedAt, meas
       items.push(runsItem(ctx, `Not started (${stage.notStarted.length})`, stage.notStarted.join(' · '),
         { leadSize: 8.5, noteSize: 9, noteColor: C.muted, indent: 10, before: 8, after: 2 }));
     }
-    placeBlock(ctx, items);
+    placeBlock(ctx, items, { whole: false });   // a stage can run long; let it flow rather than leave a page mostly blank
   }
 
   return doc.toBytes();
