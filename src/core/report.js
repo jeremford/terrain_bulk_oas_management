@@ -18,7 +18,7 @@ export const STREAM_ORDER = [
 
 export const templateKey = (stream, stage, version) => `${stream}/${stage}/${version ?? 'latest'}`;
 
-const streamRank = s => {
+export const streamRank = s => {
   const i = STREAM_ORDER.indexOf(s);
   return i === -1 ? STREAM_ORDER.length : i;
 };

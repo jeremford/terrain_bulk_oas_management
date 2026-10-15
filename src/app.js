@@ -8,6 +8,8 @@ import { buildPlan, describePlan, submitOnlyEntries } from './core/plan.js';
 import { renderGrid, readSelections, readSubmitRequests } from './ui/grid.js';
 import { buildOutstanding, buildOutstandingReport } from './core/outstanding.js';
 import { outstandingToPdf, outstandingReportToPdf } from './core/outstanding-pdf.js';
+import { buildDuplicates } from './core/duplicates.js';
+import { duplicatesToPdf } from './core/duplicates-pdf.js';
 import { buildReport, normaliseRecords, recordFilter, templateKey } from './core/report.js';
 import { reportToPdf } from './core/report-pdf.js';
 import { renderReport, reportAsHtml, canvasMeasurer } from './ui/report.js';
@@ -394,6 +396,22 @@ $('downloadOutstandingReport').addEventListener('click', async () => {
   button.disabled = true;
   try {
     const data = buildOutstandingReport(reportData.report, { templates: reportData.templates, streams: reportData.streams, stages: reportData.stages });
+
+// Recurring statements a member has ticked in one stream but not another.
+$('downloadDuplicates').addEventListener('click', async () => {
+  if (!reportData) return;
+  const button = $('downloadDuplicates');
+  button.disabled = true;
+  try {
+    const data = buildDuplicates(reportData.report, { templates: reportData.templates, streams: reportData.streams, stages: reportData.stages });
+    const bytes = await duplicatesToPdf(data, { unitName: reportData.unitName, generatedAt: new Date(), measure: canvasMeasurer() });
+    downloadFile(bytes, 'application/pdf', 'pdf', `oas-duplicates-${slugify(reportData.unitName)}`);
+  } catch (err) {
+    setStatus($('reportStatus'), `PDF failed: ${err.message}`, 'err');
+  } finally {
+    button.disabled = false;
+  }
+});
     const bytes = await outstandingReportToPdf(data, {
       unitName: reportData.unitName, generatedAt: new Date(), measure: canvasMeasurer(),
     });

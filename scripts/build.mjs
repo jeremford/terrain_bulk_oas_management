@@ -25,6 +25,8 @@ const MODULES = [
   'src/core/pdf-layout.js',
   'src/core/outstanding.js',
   'src/core/outstanding-pdf.js',
+  'src/core/duplicates.js',
+  'src/core/duplicates-pdf.js',
   'src/core/report-pdf.js',
   'src/ui/dom.js',
   'src/ui/info.js',

@@ -18,7 +18,7 @@ Not endorsed by Scouts Australia.
 
 ```
 npm start      # python3 -m http.server 8080
-npm test       # node:test, 54 tests
+npm test       # node:test, 57 tests
 npm run build  # dist/terrain-approvals.html — single self-contained file
 npm run export # oas-statements.json — flat statement list from the public templates
                # export:md additionally renders it as oas-statements.md
@@ -103,6 +103,8 @@ src/core/report-pdf.js  progress report -> PDF layout. PURE, unit tested
 src/core/pdf-layout.js  page flow, wrap and keep-together items shared by the PDF layouts
 src/core/outstanding.js grid rows, or the report -> per-statement list of who still needs it. PURE, unit tested
 src/core/outstanding-pdf.js  that list -> PDF. PURE, unit tested
+src/core/duplicates.js  recurring statements ticked in one stream, not another. PURE, unit tested
+src/core/duplicates-pdf.js  that list -> PDF. PURE, unit tested
 src/ui/dom.js           the el() helper shared by the ui modules (one copy, see build gotcha)
 src/ui/grid.js          grid render + selection read
 src/ui/info.js          the info popup (full label + template dialog_text)
@@ -132,7 +134,8 @@ fails on that, and `el()` lives in `src/ui/dom.js` for this reason.
 
 `node --test test/*.test.mjs`. Only the pure modules are unit tested — `core/plan.js`,
 `core/template.js`, `core/model.js`, `core/report.js`, `core/pdf.js`, `core/report-pdf.js`,
-`core/outstanding.js` and `core/outstanding-pdf.js` — because they hold the logic that fails silently
+`core/outstanding.js`, `core/outstanding-pdf.js`, `core/duplicates.js` and `core/duplicates-pdf.js` —
+because they hold the logic that fails silently
 and corrupts data.
 `auth`, `api` and `ui` are DOM- or network-bound and are not unit tested; verify those
 manually against a real record.

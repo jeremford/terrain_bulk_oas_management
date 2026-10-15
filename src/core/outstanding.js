@@ -10,7 +10,7 @@
  */
 
 import { isLocked } from './model.js';
-import { STREAM_ORDER, templateKey } from './report.js';
+import { streamRank, templateKey } from './report.js';
 
 const byName = (a, b) => a.localeCompare(b);
 
@@ -100,7 +100,6 @@ export function buildOutstandingReport(report, { templates = new Map(), streams 
     }
   }
 
-  const streamRank = s => { const i = STREAM_ORDER.indexOf(s); return i === -1 ? STREAM_ORDER.length : i; };
   const byOrder = (a, b) => streamRank(a.stream) - streamRank(b.stream) || a.stage - b.stage;
   const everyone = report.map(m => m.name);
   const ordered = [...byStage.values()].sort(byOrder);

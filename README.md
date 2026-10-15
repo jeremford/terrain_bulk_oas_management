@@ -90,6 +90,11 @@ rather than against every statement of it: they need all of them. A statement th
 appears, word for word, in another selected stream or stage is annotated with where, since
 one sign-off at camp can be ticked in each.
 
+**Download duplicates PDF** is the follow-up to that: for each statement worded the same
+in more than one selected stream or stage, the members who have it ticked in one and not
+another, so the tick can be carried across. Only stages the member has in progress count
+as not ticked.
+
 ### Assist mode
 
 Terrain's interface makes you "manage achievement pathways" for a member before
